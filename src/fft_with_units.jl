@@ -18,7 +18,7 @@ function fft_with_units(x, y)
     else
         freqs[Int(.5*(N+1)+1):N] -= fs
     end
-    return (freqs, out)
+    return FrequencyData(freqs, out)
 end
 
 """
@@ -48,5 +48,5 @@ function ifft_with_units(x, y)
         error("Number of time points should match the number of frequency
               points.")
     end
-    return (ts, out)
+    return TimeData(ts, out)
 end
