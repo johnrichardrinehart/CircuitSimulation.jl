@@ -48,5 +48,5 @@ function ifft_with_units(x, y)
         error("Number of time points should match the number of frequency
               points.")
     end
-    return TimeData(ts, out)
+    return TimeData(collect(ts), real(out))
 end
