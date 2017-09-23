@@ -4,6 +4,7 @@ import DifferentialEquations
 import QuadGK
 import LsqFit
 import Plots
+import ForwardDiff
 
 Plots.pyplot()
 
@@ -22,4 +23,5 @@ export tline_solve
 export abcd2s
 export abcd_tline
 export TimeData
+export lossy_fit
 end # module
