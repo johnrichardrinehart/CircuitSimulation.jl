@@ -1,92 +1,65 @@
-function lossy_fit()
-    # frequency dependencies
-    fraction(x) = f -> (x[1]+(1+im*sign(f))*sqrt(abs(f))*x[2])/(1+im*f*x[3])
-    real_part(x) = f -> real(sqrt(abs(fraction(x)(f)))*exp(im*angle(fraction(x)(f))/2))
-    imag_part(x) = f -> imag(sqrt(abs(fraction(x)(f)))*exp(im*angle(fraction(x)(f))/2))
+"""
+    lossy_fit(Rdc, Rs, L0, G, C0)
 
-    real_model(w,p) = real_part(p).(w)
-    imag_model(w,p) = imag_part(p).(w)
+Computes a fit of the parameters Rdc (DC resistive loss), Rs (skin effect loss),
+L0 (series inductance), G (shunt admittance), C0 (shunt capacitance) where these
+arguments are provided as
 
+Rdc: Float64
+Rs: Float64
+L0: Float64
+epsilon: Float64
+C0: Float64
+"""
+function lossy_fit(;maxIter=1000)
+    # construct the general form for the frequency dependence of the parameters
+    # provided
+    zr(rdc,rs) = f -> rdc+(1+im*sign(f))*rs*sqrt(abs(f))
+    zl(l0) = f -> 2*pi*f*l0
+    zg(epsilon,c0) = f-> 2*pi*f*epsilon*c0
+    zc(c0) = f -> 1/(2*pi*im*c0)
+
+    # obtain objective functions for both the real and imaginary parts of the
+    # impedance
+    z = impedance(zr,zl,zg,zc)
+
+    # re-define the model to conform to LsqFit expectations
+    model(f,p) = vcat(real(z(p).(f)), imag(z(p).(f)))
+
+    # generate artificial "data" to fit below
     xs = -1e3:1e-1:1e3
-    # data to simulate below
-    vals = rand(3)
-    g(w) = real_part(vals)(w)
-    h(w) = imag_part(vals)(w)
-    real_ys = g.(xs)
-    imag_ys = h.(xs)
-    p0 = rand(3)
+    vals = rand(5)
+    ys = model(xs,vals)
+    p0 = rand(5)
 
     # ForwardDiff.jacobian takes a function that only depends on the parameters to
     # be solved for.
-    function real_jac(w,p)
-        J = Array{Float64}(length(w),length(p))
-        for i = 1:length(w)
-            J[i,:] = ForwardDiff.gradient(pj -> real_part(pj)(w[i]),p)
-        end
-        return J
-    end
-    function imag_jac(w,p)
-        J = Array{Float64}(length(w),length(p))
-        for i = 1:length(w)
-            J[i,:] = ForwardDiff.gradient(pj -> imag_part(pj)(w[i]),p)
-        end
-        return J
+    function model_jac(w,p)
+        return ForwardDiff.jacobian(pj -> model(w,pj), p)
     end
 
-    real_fit = LsqFit.curve_fit(real_model, real_jac, xs, real_ys, p0)
-    imag_fit = LsqFit.curve_fit(imag_model, imag_jac, xs, imag_ys, p0)
-    real_errors = LsqFit.estimate_errors(real_fit, .95)
-    imag_errors = LsqFit.estimate_errors(imag_fit, .95)
-    println("Vals used: ",vals)
-    println("Vals solved (real): ", real_fit.param)
-    println("Vals solved (imag): ", imag_fit.param)
+    fit = LsqFit.curve_fit(model, model_jac, xs, ys, p0,
+                           maxIter=maxIter,
+                           lower=zeros(5)+eps(Float64),
+                        )
+    fit_errors = LsqFit.estimate_errors(fit, .95)
+    println("Vals used: ", collect(vals))
+    println("Vals solved: ", fit.param)
+    println("Estimated errors: ", fit_errors)
+end
 
-    # using LsqFit
-    # import ForwardDiff
-    # # frequency dependencies
-    # rac(Rs) = f -> (1+im*sign(f))*Rs*sqrt(abs(f))
-    # rdc(Rdc) = f -> Rdc
-    # Zl(L0) = f -> 2*pi*im*f*L0
-    # #Zc(C0) = f -> f==0?Inf:1/(2*pi*f*C0)
-    # Zc(C0) = f -> f==0?Inf:1/(2*pi*im*f*C0)
-    # gac(C0,ϵ) = f -> 2*pi*f*C0*ϵ
-    # # real and imag parts of Zc(f)
-    # fraction(x) = f -> (rdc(x[1])(f)+rac(x[2])(f)+Zl(x[3])(f))/(gac(x[4],x[5])(f)+Zc(x[4])(f))
-    # real_part(x) = f -> real(sqrt(abs(fraction(x)(f)))*exp(im*angle(fraction(x)(f))/2))
-    # imag_part(x) = f -> imag(sqrt(abs(fraction(x)(f)))*exp(im*angle(fraction(x)(f))/2))
-    #
-    # real_model(w,p) = real_part(p).(w)
-    # imag_model(w,p) = imag_part(p).(w)
-    #
-    # xs = vcat(-1e3:1e-1:-1e-1,1e-1:1e-1:1e3)
-    # # data to simulate below
-    # g(w) = real_part([1,2,3,5,1e-3])(w)
-    # h(w) = imag_part([1,2,3,5,1e-3])(w)
-    # real_ys = g.(xs)
-    # imag_ys = h.(xs)
-    # p0 = float(ones(5))
-    #
-    # # ForwardDiff.jacobian takes a function that only depends on the parameters to
-    # # be solved for.
-    # function real_jac(w,p)
-    #     J = Array{Float64}(length(w),length(p))
-    #     for i = 1:length(w)
-    #         J[i,:] = ForwardDiff.gradient(pj -> real_part(pj)(w[i]),p)
-    #     end
-    #     return J
-    # end
-    # function imag_jac(w,p)
-    #     J = Array{Float64}(length(w),length(p))
-    #     for i = 1:length(w)
-    #         J[i,:] = ForwardDiff.gradient(pj -> imag_part(pj)(w[i]),p)
-    #     end
-    #     return J
-    # end
-    #
-    # real_fit = LsqFit.curve_fit(real_model, real_jac, xs, real_ys, p0)
-    # #imag_fit = LsqFit.curve_fit(imag_model, imag_jac, xs, imag_ys, p0)
-    # #real_errors = LsqFit.estimate_errors(real_fit, .95)
-    # #imag_errors = LsqFit.estimate_errors(imag_fit, .95)
-    # println(real_fit.param)
-    # println(imag_fit.param)
+"""
+    impedance(R,L,G,C)
+
+returns a tuple of functions that return the real and imaginary parts of the
+model objective function.
+"""
+function impedance(ZR,ZL,ZG,ZC)
+    frac(p) = f -> (ZR(p[1],p[2])(f)+ZL(p[3])(f)) / (ZG(p[4],p[5])(f) + ZC(p[5])(f))
+    function Z(p)
+        return function(f)
+            f==0?sqrt(p[1]):abs(frac(p)(f))*cis(angle(frac(p)(f)))
+        end
+    end
+    return Z
 end
