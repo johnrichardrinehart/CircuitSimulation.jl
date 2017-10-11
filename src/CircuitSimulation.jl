@@ -8,20 +8,28 @@ import ForwardDiff
 
 Plots.pyplot()
 
-include("tline.jl")
-include("convert_params.jl")
-include("abcd.jl")
-include("liu_fit.jl")
-include("lossy_fit.jl")
-include("fft_with_units.jl")
-include("td_simulation.jl")
+# Package utilities
 include("types.jl")
+
+# FFT Utilities
+include("ifft_times.jl")
+include("fft_freqs.jl")
+include("fft.jl")
 include("plot.jl")
 
-export telegrapherxi
-export tline_solve
-export abcd2s
-export abcd_tline
-export TimeData
-export lossy_fit
+# Time-domain response utilities
+include("td_simulation.jl")
+
+# Network parameter utilities
+include("convert_params.jl")
+
+# Transmission line frequency-domain utilities
+include("tline_diffeq_solve.jl")
+include("abcd_tline.jl")
+include("tline_z.jl")
+
+# Transmission line fitting utilities
+include("liu_fit.jl")
+include("lossy_fit.jl")
+
 end # module

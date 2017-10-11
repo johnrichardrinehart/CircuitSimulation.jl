@@ -14,15 +14,6 @@ function telegrapher(L, C, R=0, G=0 ;n=100, vs=t->1, is=t->0)
         error("Both the inductance and capacitance need to be non-zero.")
     end
     return function(t,u,du)
-        #u[1] = vs(t)
-        #u[n+1] = is(t)
-        #dx = 1/(n-1)
-        #for i = 2:n
-            ## voltage equation
-            #du[i] = (-1/C)*((u[n+i-1]-u[n+i])/dx + G*u[i])
-            ## current equation
-            #du[n+i] = (-1/L)*((u[i-1]-u[i])/dx + R*u[n+i])
-        #end
         B2(t,view(u,n+1:2n),view(du,1:n))
         scale!(view(du,1:n), -1/L)
 
@@ -30,7 +21,6 @@ function telegrapher(L, C, R=0, G=0 ;n=100, vs=t->1, is=t->0)
         scale!(view(du,n+1:2n), -1/C)
     end
 end
-
 "
     tline_solve(f,L,C,R=0,G=0,t=(0,1),n=100)
 

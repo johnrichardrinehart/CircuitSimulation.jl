@@ -1,4 +1,4 @@
-function Plots.plot(d::CircuitSimulation.TimeData)
+function Plots.plot(d::CircuitSimulation.TimeDomainData)
     scale = (1,"");
     mint = d.ts[2]
     if mint < 1e-15
@@ -21,7 +21,7 @@ function Plots.plot(d::CircuitSimulation.TimeData)
     Plots.plot!(b,d.ts*scale[1], d.vals,)
 end
 
-function Plots.plot(d::FrequencyData; style=:magphase)
+function Plots.plot(d::FrequencyDomainData; style=:magphase)
     scale = (1,"");
     maxf = maximum(d.fs)
     if maxf > 1e15
